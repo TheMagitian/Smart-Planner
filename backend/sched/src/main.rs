@@ -1,7 +1,6 @@
 #[allow(dead_code)]
 
 use rand::prelude::*;
-use sha2::{Sha256, Digest};
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -36,6 +35,25 @@ impl ActivityType {
 
 	// "Difficulty: 0..1. 1 - easy, 0 - impossible";
 impl Activity {
+	
+    fn sigmoid(x: f32) -> f32 {
+        1.0 / (1.0 + (-x).exp())
+    }
+
+	fn get_score(&mut self) {
+        // Assign weights to parameters (you can adjust these weights according to importance)
+        let diff_weight = 0.7; // Increase the weight for difficulty
+        let priority_weight = 0.3; // Decrease the weight for priority
+
+        // Calculate score using a non-linear transformation
+        let linear_score = (self.diff * diff_weight) - ((self.typ.priority() as f32).powi(2) * priority_weight);
+        let score = Self::sigmoid(linear_score);
+
+        // Normalize the score to ensure it falls within a specific range (e.g., [0, 100])
+        let normalized_score = score * 100.0; // Assuming the range is [0, 100]
+
+        self.score = normalized_score;
+    }
 	fn new() -> Activity {
 		return Activity {
 			name: String::from("ACT0"),
@@ -47,34 +65,10 @@ impl Activity {
 		};
 	}
 
-    fn get_score(&mut self, seed: f32) {
-        let mut sc: f32 = 100.0;
-        let mut hasher = Sha256::new();
-        
-        // Use the activity's parameters to generate a seed for the hash function
-        let seed_str = format!("{}{}{}{}{}{}", self.name, self.typ as u8, self.diff, self.toc.0, self.toc.1, self.toc.2);
-        hasher.update(seed_str);
-        let result = hasher.finalize();
-        let r = f32::from_bits(result[0..4].try_into().unwrap()); // Convert the first 4 bytes of the hash to a f32
-
-        match self.typ {
-            ActivityType::College => sc *= 0.15,
-            ActivityType::Personal => sc *= 0.10,
-            ActivityType::Family   => sc *= 0.05,
-            ActivityType::Misc     => sc *= 0.01,
-        }
-        sc *= 1.0/self.diff as f32; // score ∝ 1/diff
-        sc += f32::powi(self.typ.priority() as f32, 2);
-        sc -= ((r as u8) * (r as u8)) as f32 % sc as f32;
-        println!("=== {} ===", r);
-        println!("=== {} ===", sc);
-        self.score = r*sc;
-    }
 }
 
 fn main() {
 	let mut a: Activity = Activity::new();
-	let seed = rand::thread_rng().gen::<f32>();
-	let _ = a.get_score(seed);
+	let _ = a.get_score();
 	println!("{:?} => {} | {}", a.name, a.diff, a.score);
 }
