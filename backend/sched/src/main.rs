@@ -40,17 +40,15 @@ impl Activity {
         1.0 / (1.0 + (-x).exp())
     }
 
-	fn get_score(&mut self) {
-        // Assign weights to parameters (you can adjust these weights according to importance)
+    fn get_score(&mut self) {
         let diff_weight = 0.7; // Increase the weight for difficulty
         let priority_weight = 0.3; // Decrease the weight for priority
-
-        // Calculate score using a non-linear transformation
         let linear_score = (self.diff * diff_weight) - ((self.typ.priority() as f32).powi(2) * priority_weight);
         let score = Self::sigmoid(linear_score);
-
-        // Normalize the score to ensure it falls within a specific range (e.g., [0, 100])
-        let normalized_score = score * 100.0; // Assuming the range is [0, 100]
+        let mut rng = rand::thread_rng();
+        let random_component: f32 = rng.gen::<f32>();
+        let modified_score = score + random_component;
+        let normalized_score = modified_score * 100.0; // Assuming the range is [0, 100]
 
         self.score = normalized_score;
     }
@@ -70,5 +68,5 @@ impl Activity {
 fn main() {
 	let mut a: Activity = Activity::new();
 	let _ = a.get_score();
-	println!("{:?} => {} | {}", a.name, a.diff, a.score);
+	println!("{:?} => {} | {}", a.name, a.diff, a.score as i32);
 }
